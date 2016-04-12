@@ -38,7 +38,7 @@ public class ImePreferences extends PreferenceActivity {
         super.onCreate(savedInstanceState);
 
         // We overwrite the title of the activity, as the default one is "Voice Search".
-        setTitle(R.string.settings_name);
+        setTitle(String.format(this.getString(R.string.settings_name), this.getString(R.string.keyboard_name)));
     }
 
     @Override

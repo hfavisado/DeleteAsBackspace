@@ -56,6 +56,7 @@ public class SoftKeyboard extends InputMethodService
      * that are primarily intended to be used for on-screen text entry.
      */
     static final boolean PROCESS_HARD_KEYS = true;
+	static final boolean DISABLE_PREDICTIONS = true;
 
     private InputMethodManager mInputMethodManager;
 
@@ -156,8 +157,8 @@ public class SoftKeyboard extends InputMethodService
             // Clear shift states.
             mMetaState = 0;
         }
-        
-        mPredictionOn = false;
+
+        setPrediction(false);
         mCompletionOn = false;
         mCompletions = null;
         
@@ -183,8 +184,8 @@ public class SoftKeyboard extends InputMethodService
                 // be doing predictive text (showing candidates as the
                 // user types).
                 mCurKeyboard = mQwertyKeyboard;
-                mPredictionOn = true;
-                
+                setPrediction(true);
+
                 // We now look for a few special variations of text that will
                 // modify our behavior.
                 int variation = attribute.inputType & InputType.TYPE_MASK_VARIATION;
@@ -192,7 +193,7 @@ public class SoftKeyboard extends InputMethodService
                         variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
                     // Do not display predictions / what the user is typing
                     // when they are entering a password.
-                    mPredictionOn = false;
+	                setPrediction(false);
                 }
                 
                 if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
@@ -200,7 +201,7 @@ public class SoftKeyboard extends InputMethodService
                         || variation == InputType.TYPE_TEXT_VARIATION_FILTER) {
                     // Our predictions are not useful for e-mail addresses
                     // or URIs.
-                    mPredictionOn = false;
+	                setPrediction(false);
                 }
                 
                 if ((attribute.inputType & InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
@@ -209,7 +210,7 @@ public class SoftKeyboard extends InputMethodService
                     // to supply their own.  We only show the editor's
                     // candidates when in fullscreen mode, otherwise relying
                     // own it displaying its own UI.
-                    mPredictionOn = false;
+	                setPrediction(false);
                     mCompletionOn = isFullscreenMode();
                 }
                 
@@ -368,7 +369,9 @@ public class SoftKeyboard extends InputMethodService
                     }
                 }
                 break;
-                
+	        case KeyEvent.KEYCODE_FORWARD_DEL:
+		        onKey(Keyboard.KEYCODE_DELETE, null);
+		        return true;
             case KeyEvent.KEYCODE_DEL:
                 // Special handling of the delete key: if we currently are
                 // composing text for the user, we want to modify that instead
@@ -408,7 +411,7 @@ public class SoftKeyboard extends InputMethodService
                             return true;
                         }
                     }
-                    if (mPredictionOn && translateKeyDown(keyCode, event)) {
+                    if (isPredictionOn() && translateKeyDown(keyCode, event)) {
                         return true;
                     }
                 }
@@ -427,7 +430,7 @@ public class SoftKeyboard extends InputMethodService
         // keyboard, we need to process the up events to update the meta key
         // state we are tracking.
         if (PROCESS_HARD_KEYS) {
-            if (mPredictionOn) {
+            if (isPredictionOn()) {
                 mMetaState = MetaKeyKeyListener.handleKeyUp(mMetaState,
                         keyCode, event);
             }
@@ -622,7 +625,7 @@ public class SoftKeyboard extends InputMethodService
                 primaryCode = Character.toUpperCase(primaryCode);
             }
         }
-        if (isAlphabet(primaryCode) && mPredictionOn) {
+        if (isAlphabet(primaryCode) && isPredictionOn()) {
             mComposing.append((char) primaryCode);
             getCurrentInputConnection().setComposingText(mComposing, 1);
             updateShiftKeyState(getCurrentInputEditorInfo());
@@ -717,4 +720,12 @@ public class SoftKeyboard extends InputMethodService
     
     public void onRelease(int primaryCode) {
     }
+
+	private void setPrediction(Boolean prediction) {
+		mPredictionOn = prediction;
+	}
+
+	private boolean isPredictionOn() {
+		return (mPredictionOn && !DISABLE_PREDICTIONS);
+	}
 }
